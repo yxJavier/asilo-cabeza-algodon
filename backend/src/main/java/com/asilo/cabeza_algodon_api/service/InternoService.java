@@ -20,10 +20,15 @@ public class InternoService {
     }
 
     public Interno registrarInterno(Interno interno) {
-        // Regla de negocio: asegurar que ingresa con estado Activo
         if (interno.getEstado() == null || interno.getEstado().isBlank()) {
             interno.setEstado("Activo");
         }
+
+        // Asigna la referencia del interno padre a cada medicina recibida
+        if (interno.getMedicinasCajon() != null && !interno.getMedicinasCajon().isEmpty()) {
+            interno.getMedicinasCajon().forEach(medicina -> medicina.setInterno(interno));
+        }
+
         return internoRepository.save(interno);
     }
 }

@@ -3,6 +3,9 @@ package com.asilo.cabeza_algodon_api.model;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import java.time.LocalDate;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "internos")
@@ -57,4 +60,19 @@ public class Interno {
 
     public String getEstado() { return estado; }
     public void setEstado(String estado) { this.estado = estado; }
+
+    @OneToMany(mappedBy = "interno", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @JsonManagedReference
+    private List<MedicinaCajon> medicinasCajon = new ArrayList<>();
+
+    // Método de conveniencia para asignar medicinas
+    public void agregarMedicinaCajon(MedicinaCajon medicina) {
+        medicinasCajon.add(medicina);
+        medicina.setInterno(this);
+    }
+
+    public List<MedicinaCajon> getMedicinasCajon() { return medicinasCajon; }
+    public void setMedicinasCajon(List<MedicinaCajon> medicinasCajon) { 
+        this.medicinasCajon = medicinasCajon; 
+    }
 }
