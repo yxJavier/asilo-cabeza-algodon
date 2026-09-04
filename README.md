@@ -114,7 +114,7 @@ npm run dev
 ## Estado de Entrega por Módulos
 
 - [x] **Módulo 1: Expediente Clínico y Medicinas de Cajón (RF-001)** — *Finalizado y persistido.*
-- [ ] **Módulo 2: Referencias Médicas y Notificaciones SMTP (RF-003)** — *En desarrollo.*
+- [x] **Módulo 2: Referencias Médicas y Notificaciones SMTP (RF-003)** — *En desarrollo.*
 - [ ] **Módulo 3: Portal Logístico de Fundación y Farmacia** — *Pendiente.*
 - [ ] **Módulo 4: Caja, Donaciones Multifuente y Gastos (RF-013)** — *Maquetado.*
 - [ ] **Módulo 5: Reportes y Métricas Estadísticas** — *Maquetado.*

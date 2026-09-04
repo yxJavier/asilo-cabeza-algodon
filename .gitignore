@@ -15,3 +15,9 @@ backend/.mvn/wrapper/maven-wrapper.jar
 .env
 .env.local
 .DS_Store
+
+### VS Code ###
+.vscode/
+
+# Archivos de configuracion local y credenciales privadas
+backend/src/main/resources/application-local.properties
