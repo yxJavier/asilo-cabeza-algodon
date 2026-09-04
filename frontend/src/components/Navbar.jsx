@@ -5,7 +5,7 @@ export default function Navbar() {
     <nav className="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm mb-4">
       <div className="container">
         <Link href="/" className="navbar-brand fw-bold">
-          👴 Asilo Cabeza de Algodón
+          -- ASILO CABEZA DE ALGODÓN --
         </Link>
         <div className="d-flex gap-2">
           <Link href="/residentes" className="btn btn-sm btn-outline-light">
@@ -13,6 +13,9 @@ export default function Navbar() {
           </Link>
           <Link href="/referencias" className="btn btn-sm btn-outline-light">
             Referencias
+          </Link>
+          <Link href="/fundacion" className="btn btn-sm btn-outline-light">
+            Fundacion
           </Link>
           <Link href="/facturacion" className="btn btn-sm btn-outline-light">
             Caja y Donaciones
