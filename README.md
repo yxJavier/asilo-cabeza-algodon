@@ -95,13 +95,13 @@ npm run dev
 #### Ejemplo de Carga Útil (`POST /api/v1/internos`):
 ```json
 {
-  "nombreCompleto": "Mateo Morales",
-  "fechaNacimiento": "1948-05-12",
-  "familiarContacto": "familiar.morales@gmail.com",
-  "fichaPsicopatologica": "Demencia senil leve",
+  "nombreCompleto": "Francisco Javier Yax Menchú",
+  "fechaNacimiento": "2004-11-12",
+  "familiarContacto": "yxjavier0@gmail.com",
+  "fichaPsicopatologica": "Dependencia directa a juegos y entornos digitales combinado con frecuencias sinfonicas populares (musica).",
   "medicinasCajon": [
     {
-      "nombreMedicamento": "Losartán",
+      "nombreMedicamento": "Paracetamol",
       "dosisDiaria": "50mg",
       "frecuencia": "Cada 12 horas"
     }
@@ -114,10 +114,10 @@ npm run dev
 ## Estado de Entrega por Módulos
 
 - [x] **Módulo 1: Expediente Clínico y Medicinas de Cajón (RF-001)** — *Finalizado y persistido.*
-- [x] **Módulo 2: Referencias Médicas y Notificaciones SMTP (RF-003)** — *En desarrollo.*
-- [ ] **Módulo 3: Portal Logístico de Fundación y Farmacia** — *Pendiente.*
-- [ ] **Módulo 4: Caja, Donaciones Multifuente y Gastos (RF-013)** — *Maquetado.*
-- [ ] **Módulo 5: Reportes y Métricas Estadísticas** — *Maquetado.*
+- [x] **Módulo 2: Referencias Médicas y Notificaciones SMTP (RF-003)** — *Finalizado.*
+- [x] **Módulo 3: Portal Logístico de Fundación y Farmacia** — *Finalizado.*
+- [x] **Módulo 4: Caja, Donaciones Multifuente y Gastos (RF-013)** — *Finalizado (aparentemente :p).*
+- [x] **Módulo 5: Reportes y Métricas Estadísticas** — *Finalizado.*
 
 ---
 
