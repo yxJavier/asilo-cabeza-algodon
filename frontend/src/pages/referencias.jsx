@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
+import { API_BASE } from '../config/api';
 
 export default function ReferenciasMedicas() {
   const [referencias, setReferencias] = useState([]);
@@ -16,8 +17,8 @@ export default function ReferenciasMedicas() {
   const [mensajeExito, setMensajeExito] = useState(false);
   const [errorServidor, setErrorServidor] = useState('');
 
-  const API_REFERENCIAS = 'http://localhost:8080/api/v1/referencias';
-  const API_INTERNOS = 'http://localhost:8080/api/v1/internos';
+  const API_REFERENCIAS = `${API_BASE}/api/v1/referencias`;
+  const API_INTERNOS = `${API_BASE}/api/v1/internos`;
 
   const cargarDatosIniciales = async () => {
     try {

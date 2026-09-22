@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
+import { API_BASE } from '../config/api';
 
 export default function RegistroResidentes() {
   const [residentes, setResidentes] = useState([]);
@@ -25,7 +26,7 @@ export default function RegistroResidentes() {
   const [mensajeExito, setMensajeExito] = useState(false);
   const [errorServidor, setErrorServidor] = useState('');
 
-  const API_URL = 'http://localhost:8080/api/v1/internos';
+  const API_URL = `${API_BASE}/api/v1/internos`;
 
   const cargarResidentes = async () => {
     try {

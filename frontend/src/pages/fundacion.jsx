@@ -31,9 +31,9 @@ export default function ModuloFundacion() {
   const [mensajeExito, setMensajeExito] = useState('');
   const [errorServidor, setErrorServidor] = useState('');
 
-  const API_INTERNOS = 'http://localhost:8080/api/v1/internos';
-  const API_LAB = 'http://localhost:8080/api/v1/laboratorio';
-  const API_FARMACIA = 'http://localhost:8080/api/v1/farmacia';
+  const API_INTERNOS = `${API_BASE}/api/v1/internos`;
+  const API_LAB = `${API_BASE}/api/v1/laboratorio`;
+  const API_FARMACIA = `${API_BASE}/api/v1/farmacia`;
 
   const cargarDatos = async () => {
     try {

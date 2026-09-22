@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
+import { API_BASE } from '../config/api';
 
 export default function ModuloFacturacionCaja() {
   const [tabActiva, setTabActiva] = useState('cuentas-cobrar');
@@ -41,7 +42,7 @@ export default function ModuloFacturacionCaja() {
   const [mensajeExito, setMensajeExito] = useState('');
   const [errorServidor, setErrorServidor] = useState('');
 
-  const API_CAJA = 'http://localhost:8080/api/v1/caja';
+  const API_CAJA = `${API_BASE}/api/v1/caja`;
 
   // Formato numerico determinista para evitar discrepancias de hidratacion
   const formatMoneda = (val) => {
