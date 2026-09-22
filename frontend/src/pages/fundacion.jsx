@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
+import { API_BASE } from '../config/api';
 
 export default function ModuloFundacion() {
   const [tabActiva, setTabActiva] = useState('laboratorio');
