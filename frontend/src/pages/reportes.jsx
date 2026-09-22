@@ -3,9 +3,9 @@ import Navbar from '../components/Navbar';
 import { API_BASE } from '../config/api';
 
 export default function ModuloReportesEstadisticos() {
-  const [tipoReporte, setTipoReporte] = useState(`BALANCE_GENERAL`);
+  const [tipoReporte, setTipoReporte] = useState('BALANCE_GENERAL');
   const [cargando, setCargando] = useState(true);
-  const [errorServidor, setErrorServidor] = useState(``);
+  const [errorServidor, setErrorServidor] = useState('');
 
   // Estados de datos relacionales desde PostgreSQL
   const [resumenFinanciero, setResumenFinanciero] = useState({
@@ -29,7 +29,7 @@ export default function ModuloReportesEstadisticos() {
 
   const formatMoneda = (val) => {
     const num = Number(val) || 0;
-    return num.toLocaleString(`en-US`, {
+    return num.toLocaleString('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     });
@@ -38,7 +38,7 @@ export default function ModuloReportesEstadisticos() {
   const cargarDatosReportes = async () => {
     try {
       setCargando(true);
-      setErrorServidor(``);
+      setErrorServidor('');
 
       const [
         resResumen,
@@ -70,7 +70,7 @@ export default function ModuloReportesEstadisticos() {
         !resLab.ok ||
         !resFarmacia.ok
       ) {
-        throw new Error(`Error al sincronizar datos consolidados para reportes.`);
+        throw new Error('Error al sincronizar datos consolidados para reportes.');
       }
 
       setResumenFinanciero(await resResumen.json());
@@ -83,7 +83,7 @@ export default function ModuloReportesEstadisticos() {
       setDespachosFarmacia(await resFarmacia.json());
     } catch (err) {
       console.error(err);
-      setErrorServidor(`No se pudo establecer comunicacion con los endpoints de reporteria.`);
+      setErrorServidor('No se pudo establecer comunicacion con los endpoints de reporteria.');
     } finally {
       setCargando(false);
     }
@@ -135,7 +135,7 @@ export default function ModuloReportesEstadisticos() {
           <div className="col-lg-3 col-6">
             <div className="card shadow-sm border-0 p-3 bg-light">
               <span className="small text-muted fw-semibold">Superavit / Saldo Caja</span>
-              <h4 className={`fw-bold mb-0 ${resumenFinanciero.saldoNeto >= 0 ? `text-success` : `text-danger`}`}>
+              <h4 className={`fw-bold mb-0 ${resumenFinanciero.saldoNeto >= 0 ? 'text-success' : 'text-danger'}`}>
                 Q {formatMoneda(resumenFinanciero.saldoNeto)}
               </h4>
             </div>
@@ -180,11 +180,11 @@ export default function ModuloReportesEstadisticos() {
         <div className="card shadow-sm border-0">
           <div className="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
             <h5 className="card-title mb-0 fw-bold">
-              {tipoReporte === `BALANCE_GENERAL` && `Informe RF-022: Balance Financiero de Entradas y Salidas`}
-              {tipoReporte === `CUENTAS_COBRAR` && `Informe RF-020: Estados de Cuenta y Cobros por Residente`}
-              {tipoReporte === `DEUDA_FUNDACION` && `Informe RF-021: Liquidacion Institucional con Fundacion Medica`}
-              {tipoReporte === `EXAMENES_LAB` && `Informe RF-023: Registro Consolidado de Pruebas de Laboratorio`}
-              {tipoReporte === `FARMACOS` && `Informe RF-019/024: Censo de Medicamentos de Cajon y Farmacia`}
+              {tipoReporte === 'BALANCE_GENERAL' && 'Informe RF-022: Balance Financiero de Entradas y Salidas'}
+              {tipoReporte === 'CUENTAS_COBRAR' && 'Informe RF-020: Estados de Cuenta y Cobros por Residente'}
+              {tipoReporte === 'DEUDA_FUNDACION' && 'Informe RF-021: Liquidacion Institucional con Fundacion Medica'}
+              {tipoReporte === 'EXAMENES_LAB' && 'Informe RF-023: Registro Consolidado de Pruebas de Laboratorio'}
+              {tipoReporte === 'FARMACOS' && 'Informe RF-019/024: Censo de Medicamentos de Cajon y Farmacia'}
             </h5>
             <span className="badge bg-light text-dark border">Consolidado Oficial</span>
           </div>
@@ -198,7 +198,7 @@ export default function ModuloReportesEstadisticos() {
             ) : (
               <>
                 {/* 1. BALANCE GENERAL (RF-022) */}
-                {tipoReporte === `BALANCE_GENERAL` && (
+                {tipoReporte === 'BALANCE_GENERAL' && (
                   <div>
                     <h6 className="fw-bold text-success border-bottom pb-2 mb-3">1. Ingresos por Donaciones Multifuente</h6>
                     {donaciones.length === 0 ? (
@@ -267,7 +267,7 @@ export default function ModuloReportesEstadisticos() {
                 )}
 
                 {/* 2. CUENTAS POR COBRAR (RF-020) */}
-                {tipoReporte === `CUENTAS_COBRAR` && (
+                {tipoReporte === 'CUENTAS_COBRAR' && (
                   <div className="table-responsive">
                     <table className="table table-bordered align-middle">
                       <thead className="table-light">
@@ -299,7 +299,7 @@ export default function ModuloReportesEstadisticos() {
                 )}
 
                 {/* 3. CONCILIACION DEUDA FUNDACION (RF-021) */}
-                {tipoReporte === `DEUDA_FUNDACION` && (
+                {tipoReporte === 'DEUDA_FUNDACION' && (
                   <div>
                     <div className="row g-3 mb-4">
                       <div className="col-md-4">
@@ -328,7 +328,7 @@ export default function ModuloReportesEstadisticos() {
                 )}
 
                 {/* 4. HISTORIAL DE LABORATORIO (RF-023) */}
-                {tipoReporte === `EXAMENES_LAB` && (
+                {tipoReporte === 'EXAMENES_LAB' && (
                   <div className="table-responsive">
                     <table className="table table-hover align-middle">
                       <thead className="table-light">
@@ -350,10 +350,10 @@ export default function ModuloReportesEstadisticos() {
                               <td className="fw-bold text-muted">#{o.id}</td>
                               <td className="fw-semibold">{o.nombreInterno}</td>
                               <td>{o.tipoExamen}</td>
-                              <td className="small text-muted">{o.resultado || `Pendiente de resultado`}</td>
+                              <td className="small text-muted">{o.resultado || 'Pendiente de resultado'}</td>
                               <td className="fw-semibold">Q {formatMoneda(o.costoPreferencial)}</td>
                               <td>
-                                <span className={`badge ${o.estado === `Completado` ? `bg-success-subtle text-success border border-success-subtle` : `bg-warning-subtle text-warning border border-warning-subtle`}`}>
+                                <span className={`badge ${o.estado === 'Completado' ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-warning-subtle text-warning border border-warning-subtle'}`}>
                                   {o.estado}
                                 </span>
                               </td>
@@ -366,7 +366,7 @@ export default function ModuloReportesEstadisticos() {
                 )}
 
                 {/* 5. FARMACOS DE CAJON Y FARMACIA (RF-019 / RF-024) */}
-                {tipoReporte === `FARMACOS` && (
+                {tipoReporte === 'FARMACOS' && (
                   <div>
                     <h6 className="fw-bold text-primary border-bottom pb-2 mb-3">1. Medicamentos de Uso Diario Continuo ("De Cajon")</h6>
                     <div className="table-responsive mb-4">
@@ -382,7 +382,7 @@ export default function ModuloReportesEstadisticos() {
                           {internos.map((i) => (
                             <tr key={i.id}>
                               <td className="fw-semibold">{i.nombreCompleto}</td>
-                              <td className="small text-muted">{i.fichaPsicopatologica || `Sin observaciones`}</td>
+                              <td className="small text-muted">{i.fichaPsicopatologica || 'Sin observaciones'}</td>
                               <td>
                                 {i.medicinasCajon && i.medicinasCajon.length > 0 ? (
                                   i.medicinasCajon.map((m, idx) => (
