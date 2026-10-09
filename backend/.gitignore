@@ -4,7 +4,7 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
-### STS ###
+# Configuracion STS
 .apt_generated
 .classpath
 .factorypath
@@ -13,13 +13,13 @@ target/
 .springBeans
 .sts4-cache
 
-### IntelliJ IDEA ###
+# Configuracion IntelliJ IDEA
 .idea
 *.iws
 *.iml
 *.ipr
 
-### NetBeans ###
+# Configuracion NetBeans
 /nbproject/private/
 /nbbuild/
 /dist/
@@ -28,3 +28,6 @@ target/
 build/
 !**/src/main/**/build/
 !**/src/test/**/build/
+
+# Credenciales locales de Spring Boot (ruta relativa interna)
+src/main/resources/application-local.properties

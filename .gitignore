@@ -1,23 +1,25 @@
-# Node & Next.js
+# Dependencias y compilacion Frontend (Next.js)
 frontend/node_modules/
 frontend/.next/
 frontend/out/
 frontend/build/
 
-# Maven & Java
+# Dependencias y compilacion Backend (Spring Boot / Maven)
 backend/target/
 backend/.mvn/wrapper/maven-wrapper.jar
 
-# Entorno e IDEs
+# Entorno local y variables privadas (aplica a cualquier nivel)
+.env
+.env*.local
+*.local
+**/application-local.properties
+
+# Archivos de configuracion de IDEs y sistema
 .vscode/
 .idea/
+*.iws
+*.iml
+*.ipr
 *.log
-.env
-.env.local
 .DS_Store
-
-### VS Code ###
-.vscode/
-
-# Archivos de configuracion local y credenciales privadas
-backend/src/main/resources/application-local.properties
+Thumbs.db

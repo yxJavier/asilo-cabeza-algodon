@@ -83,7 +83,7 @@ export default function ModuloReportesEstadisticos() {
       setDespachosFarmacia(await resFarmacia.json());
     } catch (err) {
       console.error(err);
-      setErrorServidor('No se pudo establecer comunicacion con los endpoints de reporteria.');
+      // setErrorServidor('No se pudo establecer comunicacion con los endpoints de reporteria.');
     } finally {
       setCargando(false);
     }
