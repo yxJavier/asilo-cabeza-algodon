@@ -1,53 +1,60 @@
 package com.asilo.cabeza_algodon_api.service;
 
-import com.asilo.cabeza_algodon_api.model.SolicitudReferencia;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class EmailService {
 
-    private final JavaMailSender mailSender;
+    @Value("${RESEND_API_KEY:}")
+    private String resendApiKey;
 
-    public EmailService(JavaMailSender mailSender) {
-        this.mailSender = mailSender;
-    }
+    private final RestTemplate restTemplate = new RestTemplate();
 
     @Async
-    public void enviarAlertaReferencia(SolicitudReferencia solicitud) {
+    public void enviarNotificacion(String destinatario, String nombrePaciente, String especialidad) {
+        if (resendApiKey == null || resendApiKey.isBlank()) {
+            System.err.println("Aviso: RESEND_API_KEY no esta configurada. No se enviara correo.");
+            return;
+        }
+
+        if (destinatario == null || destinatario.isBlank()) {
+            System.err.println("Aviso: Destinatario vacio o invalido.");
+            return;
+        }
+
         try {
-            SimpleMailMessage mensaje = new SimpleMailMessage();
-            mensaje.setTo(solicitud.getCorreoFamiliar());
-            mensaje.setSubject(" Notificación Médica: Derivación de " + solicitud.getNombreInterno() + " - Asilo Cabeza de Algodón");
-            
-            String cuerpo = String.format(
-                "Estimado familiar responsable,\n\n" +
-                "Le informamos que el Médico General del Asilo Cabeza de Algodón ha emitido una solicitud de referencia médica para su paciente:\n\n" +
-                "• Residente: %s\n" +
-                "• Especialidad Requerida: %s\n" +
-                "• Motivo Clínico: %s\n" +
-                "• Estado Actual: %s\n\n" +
-                "La Fundación Médica aliada se encuentra programando la cita y el horario correspondiente. " +
-                "Le mantendremos informado del agendamiento y los resultados de la consulta.\n\n" +
-                "Atentamente,\n" +
-                "Dirección Médica y Cuidados Generales\n" +
-                "Asilo de Ancianos Cabeza de Algodón",
-                solicitud.getNombreInterno(),
-                solicitud.getEspecialidad(),
-                solicitud.getMotivo(),
-                solicitud.getEstado()
-            );
+            String url = "https://api.resend.com/emails";
 
-            mensaje.setText(cuerpo);
-            mailSender.send(mensaje);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(resendApiKey);
 
-            System.out.println(">>> [SMTP ÉXITO] Correo de alerta enviado correctamente a: " + solicitud.getCorreoFamiliar());
+            Map<String, Object> body = new HashMap<>();
+            body.put("from", "Asilo Cabeza de Algodon <onboarding@resend.dev>");
+            body.put("to", List.of(destinatario));
+            body.put("subject", "Notificacion de Referencia Medica - Asilo Cabeza de Algodon");
+            body.put("text", "Estimado familiar,\n\n"
+                    + "Le notificamos que el residente " + nombrePaciente 
+                    + " ha sido referido a la especialidad de " + especialidad 
+                    + " para su atencion en la Fundacion.\n\n"
+                    + "Atentamente,\nDireccion Medica del Asilo.");
+
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+            restTemplate.postForEntity(url, request, String.class);
+
+            System.out.println("Correo despachado exitosamente hacia: " + destinatario);
         } catch (Exception e) {
-            // Se registra el error en consola para auditoría sin romper la persistencia de la referencia
-            System.err.println(">>> [SMTP AVISO] No se pudo despachar el correo hacia " + solicitud.getCorreoFamiliar() 
-                    + ". Detalle: " + e.getMessage());
+            System.err.println("Fallo al despachar correo mediante Resend: " + e.getMessage());
         }
     }
 }

@@ -22,11 +22,19 @@ public class SolicitudReferenciaService {
     }
 
     public SolicitudReferencia crearSolicitud(SolicitudReferencia solicitud) {
-        // 1. Persistencia relacional en PostgreSQL
+        // 1. Guardar la entidad en PostgreSQL
         SolicitudReferencia guardada = referenciaRepository.save(solicitud);
 
-        // 2. Disparo asíncrono de notificación por correo (RF-017 / CU-16)
-        emailService.enviarAlertaReferencia(guardada);
+        // 2. Disparar correo asincrono con los datos reales del formulario (RF-017)
+        try {
+            emailService.enviarNotificacion(
+                guardada.getCorreoFamiliar(),
+                guardada.getNombreInterno(),
+                guardada.getEspecialidad()
+            );
+        } catch (Exception ex) {
+            System.err.println("No se pudo iniciar el envio de correo: " + ex.getMessage());
+        }
 
         return guardada;
     }
