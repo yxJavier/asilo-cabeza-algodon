@@ -1,11 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
-import { API_BASE } from '../config/api';
+import AccesoDenegado from '../components/AccesoDenegado';
+import { apiFetch } from '../services/api';
 
 export default function ModuloFacturacionCaja() {
+  // 1. Control de Acceso por Roles (RBAC)
+  const [sesion, setSesion] = useState(null);
+  const [autorizado, setAutorizado] = useState(false);
+  const [comprobando, setComprobando] = useState(true);
+
+  // Módulo contable reservado estrictamente para personal administrativo
+  const ROLES_PERMITIDOS = ['ADMINISTRADOR'];
+
+  // 2. Estados de Datos y Navegación Interna
   const [tabActiva, setTabActiva] = useState('cuentas-cobrar');
-  
-  // Resumen financiero global consolidado (RF-016)
   const [resumen, setResumen] = useState({
     totalDonaciones: 0,
     totalGastos: 0,
@@ -14,7 +22,6 @@ export default function ModuloFacturacionCaja() {
     totalCuentasPorCobrar: 0
   });
 
-  // Listados y datos contables
   const [donaciones, setDonaciones] = useState([]);
   const [gastos, setGastos] = useState([]);
   const [cuentasCobrar, setCuentasCobrar] = useState([]);
@@ -42,9 +49,28 @@ export default function ModuloFacturacionCaja() {
   const [mensajeExito, setMensajeExito] = useState('');
   const [errorServidor, setErrorServidor] = useState('');
 
-  const API_CAJA = `${API_BASE}/api/v1/caja`;
+  // 3. Verificación de Sesión en el Navegador
+  useEffect(() => {
+    const sesionStr = localStorage.getItem('usuario_sesion');
+    if (!sesionStr) {
+      window.location.href = '/';
+      return;
+    }
 
-  // Formato numerico determinista para evitar discrepancias de hidratacion
+    try {
+      const user = JSON.parse(sesionStr);
+      setSesion(user);
+      if (ROLES_PERMITIDOS.includes(user.rol)) {
+        setAutorizado(true);
+      }
+    } catch {
+      window.location.href = '/';
+    } finally {
+      setComprobando(false);
+    }
+  }, []);
+
+  // 4. Formateo Numérico y Consulta al Servidor
   const formatMoneda = (val) => {
     const num = Number(val) || 0;
     return num.toLocaleString('en-US', {
@@ -54,20 +80,23 @@ export default function ModuloFacturacionCaja() {
   };
 
   const cargarDatosFinancieros = async () => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (!token) return;
+
     try {
       setCargandoDatos(true);
       setErrorServidor('');
 
       const [resResumen, resDonaciones, resGastos, resCuentas, resDeuda] = await Promise.all([
-        fetch(`${API_CAJA}/resumen`),
-        fetch(`${API_CAJA}/donaciones`),
-        fetch(`${API_CAJA}/gastos`),
-        fetch(`${API_CAJA}/cuentas-cobrar`),
-        fetch(`${API_CAJA}/deuda-fundacion`)
+        apiFetch('/api/v1/caja/resumen'),
+        apiFetch('/api/v1/caja/donaciones'),
+        apiFetch('/api/v1/caja/gastos'),
+        apiFetch('/api/v1/caja/cuentas-cobrar'),
+        apiFetch('/api/v1/caja/deuda-fundacion')
       ]);
 
       if (!resResumen.ok || !resDonaciones.ok || !resGastos.ok || !resCuentas.ok || !resDeuda.ok) {
-        throw new Error('Fallo al obtener datos contables desde los servicios de Spring Boot');
+        throw new Error('Fallo al obtener datos contables desde los servicios del servidor.');
       }
 
       setResumen(await resResumen.json());
@@ -77,16 +106,19 @@ export default function ModuloFacturacionCaja() {
       setDeudaFundacion(await resDeuda.json());
     } catch (err) {
       console.error(err);
-      setErrorServidor('No se pudo establecer comunicacion con el modulo financiero (puerto 8080).');
+      setErrorServidor('No se pudo establecer comunicación con el módulo financiero.');
     } finally {
       setCargandoDatos(false);
     }
   };
 
   useEffect(() => {
-    cargarDatosFinancieros();
-  }, []);
+    if (autorizado) {
+      cargarDatosFinancieros();
+    }
+  }, [autorizado]);
 
+  // 5. Manejadores de Formularios
   const handleGuardarDonacion = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -99,20 +131,19 @@ export default function ModuloFacturacionCaja() {
     };
 
     try {
-      const res = await fetch(`${API_CAJA}/donaciones`, {
+      const res = await apiFetch('/api/v1/caja/donaciones', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
 
-      if (!res.ok) throw new Error('Error al registrar la donacion.');
+      if (!res.ok) throw new Error('Error al registrar la donación.');
 
       const nueva = await res.json();
       setDonaciones((prev) => [...prev, nueva]);
       setFormDonacion({ donante: '', tipoDonante: 'Persona Particular', monto: '' });
-      setMensajeExito('Donacion contabilizada e ingresada al libro diario exitosamente.');
-      
-      const resResumen = await fetch(`${API_CAJA}/resumen`);
+      setMensajeExito('Donación contabilizada e ingresada al libro diario exitosamente.');
+
+      const resResumen = await apiFetch('/api/v1/caja/resumen');
       if (resResumen.ok) setResumen(await resResumen.json());
 
       setTimeout(() => setMensajeExito(''), 4000);
@@ -135,9 +166,8 @@ export default function ModuloFacturacionCaja() {
     };
 
     try {
-      const res = await fetch(`${API_CAJA}/gastos`, {
+      const res = await apiFetch('/api/v1/caja/gastos', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
 
@@ -148,7 +178,7 @@ export default function ModuloFacturacionCaja() {
       setFormGasto({ concepto: '', categoria: 'Servicios Basicos', monto: '' });
       setMensajeExito('Gasto operativo registrado y descontado del balance general.');
 
-      const resResumen = await fetch(`${API_CAJA}/resumen`);
+      const resResumen = await apiFetch('/api/v1/caja/resumen');
       if (resResumen.ok) setResumen(await resResumen.json());
 
       setTimeout(() => setMensajeExito(''), 4000);
@@ -159,19 +189,38 @@ export default function ModuloFacturacionCaja() {
     }
   };
 
+  // 6. Intercepciones Visuales de Seguridad
+  if (comprobando) {
+    return (
+      <div className="container py-5 text-center">
+        <div className="spinner-border text-primary" role="status"></div>
+        <p className="mt-2 text-muted small">Verificando autorizaciones...</p>
+      </div>
+    );
+  }
+
+  if (!autorizado) {
+    return (
+      <>
+        <Navbar />
+        <AccesoDenegado modulo="Control Contable y Facturación" rolActual={sesion?.rol} />
+      </>
+    );
+  }
+
+  // 7. Renderizado Principal
   return (
     <>
       <Navbar />
       <div className="container py-2">
-        {/* Encabezado */}
         <div className="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
           <div>
-            <h3 className="fw-bold text-primary mb-0">Tesoreria, Caja y Liquidacion Interinstitucional</h3>
+            <h3 className="fw-bold text-primary mb-0">Tesorería, Caja y Liquidación Interinstitucional</h3>
             <small className="text-muted">
-              Modulo 4: Cuentas por Cobrar, Conciliacion de Deuda y Donaciones Multifuente (RF-012 a RF-017)
+              Cuentas por Cobrar, Conciliación de Deuda y Donaciones Multifuente
             </small>
           </div>
-          <span className="badge bg-success fs-6 px-3 py-2 border">Modulo 4</span>
+          <span className="badge bg-success fs-6 px-3 py-2 border">Administración</span>
         </div>
 
         {mensajeExito && (
@@ -186,7 +235,6 @@ export default function ModuloFacturacionCaja() {
           </div>
         )}
 
-        {/* Tarjetas Metricas de Resumen Financiero Consolidado */}
         <div className="row g-3 mb-4">
           <div className="col-lg-3 col-md-6">
             <div className="card shadow-sm border-0 bg-primary text-white p-3">
@@ -208,13 +256,12 @@ export default function ModuloFacturacionCaja() {
           </div>
           <div className="col-lg-3 col-md-6">
             <div className="card shadow-sm border-0 bg-dark text-white p-3">
-              <span className="small text-white-50">Deuda Acumulada con Fundacion</span>
+              <span className="small text-white-50">Deuda Acumulada con Fundación</span>
               <h4 className="fw-bold mb-0 text-warning">Q {formatMoneda(resumen.deudaFundacion)}</h4>
             </div>
           </div>
         </div>
 
-        {/* Pestanas de Navegacion Interna */}
         <ul className="nav nav-tabs mb-4">
           <li className="nav-item">
             <button
@@ -229,7 +276,7 @@ export default function ModuloFacturacionCaja() {
               className={`nav-link fw-semibold ${tabActiva === 'deuda-fundacion' ? 'active text-primary' : 'text-secondary'}`}
               onClick={() => setTabActiva('deuda-fundacion')}
             >
-              Conciliacion Deuda Fundacion
+              Conciliación Deuda Fundación
             </button>
           </li>
           <li className="nav-item">
@@ -250,13 +297,12 @@ export default function ModuloFacturacionCaja() {
           </li>
         </ul>
 
-        {/* Pestana 1: Cuentas Corrientes por Familiar (RF-012 / RF-016) */}
         {tabActiva === 'cuentas-cobrar' && (
           <div className="card shadow-sm border-0">
             <div className="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
               <div>
-                <h5 className="card-title mb-0 fw-bold">Estado de Cuenta Corriente por Residente (RF-012 y RF-016)</h5>
-                <small className="text-muted">Calculo de Cuota Base Mensual (Q 1,500.00) + Consumos Clinicos de Laboratorio y Farmacia</small>
+                <h5 className="card-title mb-0 fw-bold">Estado de Cuenta Corriente por Residente</h5>
+                <small className="text-muted">Cálculo de Cuota Base Mensual (Q 1,500.00) más consumos clínicos de laboratorio y farmacia</small>
               </div>
               <button className="btn btn-sm btn-outline-secondary" onClick={cargarDatosFinancieros} disabled={cargandoDatos}>
                 Recargar
@@ -266,7 +312,7 @@ export default function ModuloFacturacionCaja() {
               {cargandoDatos ? (
                 <div className="text-center py-4 text-muted">Calculando saldos pendientes...</div>
               ) : cuentasCobrar.length === 0 ? (
-                <div className="p-4 text-center text-muted">No existen residentes registrados para facturacion.</div>
+                <div className="p-4 text-center text-muted">No existen residentes registrados para facturación.</div>
               ) : (
                 <div className="table-responsive">
                   <table className="table table-hover align-middle mb-0">
@@ -301,23 +347,22 @@ export default function ModuloFacturacionCaja() {
           </div>
         )}
 
-        {/* Pestana 2: Conciliacion Deuda con la Fundacion (RF-017) */}
         {tabActiva === 'deuda-fundacion' && (
           <div className="row g-4">
             <div className="col-lg-6">
               <div className="card shadow-sm border-0 h-100">
                 <div className="card-header bg-dark text-white py-3">
-                  <h5 className="card-title mb-0 fw-semibold">Desglose de Liquidacion por Pagar (RF-017)</h5>
+                  <h5 className="card-title mb-0 fw-semibold">Desglose de Liquidación por Pagar</h5>
                 </div>
                 <div className="card-body p-4">
                   <p className="text-muted small">
-                    Consolidado automatico de obligaciones contraidas con la Fundacion Medica aliada por concepto de servicios y prescripciones prestadas a los residentes del asilo bajo tarifa social.
+                    Consolidado automático de obligaciones contraídas con la Fundación Médica aliada por concepto de servicios y prescripciones prestadas a los residentes del asilo bajo tarifa social.
                   </p>
                   <ul className="list-group list-group-flush mb-4">
                     <li className="list-group-item d-flex justify-content-between align-items-center px-0 py-3">
                       <div>
                         <div className="fw-semibold">Servicios Auxiliares de Laboratorio</div>
-                        <small className="text-muted">Total acumulado de ordenes clinicas procesadas</small>
+                        <small className="text-muted">Total acumulado de órdenes clínicas procesadas</small>
                       </div>
                       <span className="fw-bold fs-5 text-secondary">Q {formatMoneda(deudaFundacion.subtotalLaboratorio)}</span>
                     </li>
@@ -334,7 +379,7 @@ export default function ModuloFacturacionCaja() {
                     </li>
                   </ul>
                   <button className="btn btn-outline-dark w-100 py-2 fw-semibold" onClick={cargarDatosFinancieros}>
-                    Sincronizar Balance con Modulo de Fundacion
+                    Sincronizar Balance con Módulo de Fundación
                   </button>
                 </div>
               </div>
@@ -342,35 +387,34 @@ export default function ModuloFacturacionCaja() {
 
             <div className="col-lg-6">
               <div className="card shadow-sm border-0 bg-light p-4 h-100">
-                <h5 className="fw-bold text-primary mb-3">Normativa de Conciliacion Institucional</h5>
+                <h5 className="fw-bold text-primary mb-3">Normativa de Conciliación Institucional</h5>
                 <p className="small text-muted mb-3">
-                  Segun el convenio operativo entre el Asilo Cabeza de Algodon y la Fundacion Medica, las liquidaciones se consolidan de forma mensual:
+                  Según el convenio operativo entre el Asilo Cabeza de Algodón y la Fundación Médica, las liquidaciones se consolidan de forma mensual:
                 </p>
                 <div className="p-3 bg-white border rounded mb-3">
                   <div className="small fw-semibold text-dark">Precios Preferenciales Inmutables</div>
-                  <div className="small text-muted">Los costos unitarios quedan fijados al momento del despacho para evitar que futuras revisiones de precios afecten historicos contables.</div>
+                  <div className="small text-muted">Los costos unitarios quedan fijados al momento del despacho para evitar que futuras revisiones de precios afecten históricos contables.</div>
                 </div>
                 <div className="p-3 bg-white border rounded">
-                  <div className="small fw-semibold text-dark">Garantia contra Duplicidad</div>
-                  <div className="small text-muted">Solo las recetas bloqueadas con entrega fisica confirmada y ordenes de laboratorio con toma de muestra efectiva son computadas en el saldo pasivo.</div>
+                  <div className="small fw-semibold text-dark">Garantía contra Duplicidad</div>
+                  <div className="small text-muted">Solo las recetas bloqueadas con entrega física confirmada y órdenes de laboratorio con toma de muestra efectiva son computadas en el saldo pasivo.</div>
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Pestana 3: Donaciones Multifuente (RF-013) */}
         {tabActiva === 'donaciones' && (
           <div className="row g-4">
             <div className="col-lg-5">
               <div className="card shadow-sm border-0">
                 <div className="card-header bg-primary text-white py-3">
-                  <h5 className="card-title mb-0 fw-semibold">Ingresar Donacion Multifuente</h5>
+                  <h5 className="card-title mb-0 fw-semibold">Ingresar Donación Multifuente</h5>
                 </div>
                 <div className="card-body p-4">
                   <form onSubmit={handleGuardarDonacion}>
                     <div className="mb-3">
-                      <label className="form-label small fw-semibold">Donante o Razon Social</label>
+                      <label className="form-label small fw-semibold">Donante o Razón Social</label>
                       <input
                         type="text"
                         className="form-control"
@@ -382,7 +426,7 @@ export default function ModuloFacturacionCaja() {
                     </div>
 
                     <div className="mb-3">
-                      <label className="form-label small fw-semibold">Tipo de Entidad Donante (4 Categorias ERS)</label>
+                      <label className="form-label small fw-semibold">Tipo de Entidad Donante</label>
                       <select
                         className="form-select"
                         value={formDonacion.tipoDonante}
@@ -397,7 +441,7 @@ export default function ModuloFacturacionCaja() {
                     </div>
 
                     <div className="mb-4">
-                      <label className="form-label small fw-semibold">Monto de Donacion (Q)</label>
+                      <label className="form-label small fw-semibold">Monto de Donación (Q)</label>
                       <input
                         type="number"
                         step="0.01"
@@ -465,7 +509,6 @@ export default function ModuloFacturacionCaja() {
           </div>
         )}
 
-        {/* Pestana 4: Gastos Operativos (RF-014) */}
         {tabActiva === 'gastos' && (
           <div className="row g-4">
             <div className="col-lg-5">
@@ -480,7 +523,7 @@ export default function ModuloFacturacionCaja() {
                       <input
                         type="text"
                         className="form-control"
-                        placeholder="Ej. Factura de Energia Electrica / Compra de gas"
+                        placeholder="Ej. Factura de Energía Eléctrica / Compra de gas"
                         value={formGasto.concepto}
                         onChange={(e) => setFormGasto({ ...formGasto, concepto: e.target.value })}
                         required
@@ -488,17 +531,17 @@ export default function ModuloFacturacionCaja() {
                     </div>
 
                     <div className="mb-3">
-                      <label className="form-label small fw-semibold">Categoria de Servicio</label>
+                      <label className="form-label small fw-semibold">Categoría de Servicio</label>
                       <select
                         className="form-select"
                         value={formGasto.categoria}
                         onChange={(e) => setFormGasto({ ...formGasto, categoria: e.target.value })}
                         required
                       >
-                        <option value="Servicios Basicos">Servicios Basicos (Luz / Agua / Gas)</option>
-                        <option value="Insumos Medicos">Insumos Medicos y Sanitarios</option>
+                        <option value="Servicios Basicos">Servicios Básicos (Luz / Agua / Gas)</option>
+                        <option value="Insumos Medicos">Insumos Médicos y Sanitarios</option>
                         <option value="Mantenimiento">Mantenimiento de Edificio</option>
-                        <option value="Alimentacion">Alimentacion y Perecederos</option>
+                        <option value="Alimentacion">Alimentación y Perecederos</option>
                       </select>
                     </div>
 
@@ -544,7 +587,7 @@ export default function ModuloFacturacionCaja() {
                           <tr>
                             <th className="ps-3">ID</th>
                             <th>Concepto</th>
-                            <th>Categoria</th>
+                            <th>Categoría</th>
                             <th>Fecha</th>
                             <th>Monto</th>
                           </tr>

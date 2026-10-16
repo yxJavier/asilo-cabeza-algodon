@@ -1,8 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
-import { API_BASE } from '../config/api';
+import AccesoDenegado from '../components/AccesoDenegado';
+import { apiFetch } from '../services/api';
 
 export default function RegistroResidentes() {
+  // 1. Control de Acceso por Roles (RBAC)
+  const [sesion, setSesion] = useState(null);
+  const [autorizado, setAutorizado] = useState(false);
+  const [comprobando, setComprobando] = useState(true);
+
+  // Módulo Clínico permitido para Administradores, Médicos Generales y Enfermeros
+  const ROLES_PERMITIDOS = ['ADMINISTRADOR', 'ENFERMERO', 'MEDICO_GENERAL', 'COORD_FUNDACION'];
+
+  // 2. Estados del Catálogo y Formulario de Residentes
   const [residentes, setResidentes] = useState([]);
   const [formData, setFormData] = useState({
     nombreCompleto: '',
@@ -23,13 +33,38 @@ export default function RegistroResidentes() {
   const [mensajeExito, setMensajeExito] = useState(false);
   const [errorServidor, setErrorServidor] = useState('');
 
-  const API_URL = `${API_BASE}/api/v1/internos`;
+  // 3. Verificación de Sesión en el Navegador
+  useEffect(() => {
+    const sesionStr = localStorage.getItem('usuario_sesion');
+    if (!sesionStr) {
+      window.location.href = '/';
+      return;
+    }
 
+    try {
+      const user = JSON.parse(sesionStr);
+      setSesion(user);
+      if (ROLES_PERMITIDOS.includes(user.rol)) {
+        setAutorizado(true);
+      }
+    } catch {
+      window.location.href = '/';
+    } finally {
+      setComprobando(false);
+    }
+  }, []);
+
+  // 4. Carga de Residentes desde la API
   const cargarResidentes = async () => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (!token) return;
+
     try {
       setCargandoLista(true);
       setErrorServidor('');
-      const response = await fetch(API_URL);
+
+      const response = await apiFetch('/api/v1/internos');
+
       if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
       const data = await response.json();
       setResidentes(data);
@@ -42,9 +77,12 @@ export default function RegistroResidentes() {
   };
 
   useEffect(() => {
-    cargarResidentes();
-  }, []);
+    if (autorizado) {
+      cargarResidentes();
+    }
+  }, [autorizado]);
 
+  // 5. Manejadores de Eventos del Formulario
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -78,9 +116,8 @@ export default function RegistroResidentes() {
     };
 
     try {
-      const response = await fetch(API_URL, {
+      const response = await apiFetch('/api/v1/internos', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
 
@@ -107,6 +144,26 @@ export default function RegistroResidentes() {
     }
   };
 
+  // 6. Intercepciones Visuales de Seguridad
+  if (comprobando) {
+    return (
+      <div className="container py-5 text-center">
+        <div className="spinner-border text-primary" role="status"></div>
+        <p className="mt-2 text-muted small">Verificando autorizaciones...</p>
+      </div>
+    );
+  }
+
+  if (!autorizado) {
+    return (
+      <>
+        <Navbar />
+        <AccesoDenegado modulo="Gestión de Residentes" rolActual={sesion?.rol} />
+      </>
+    );
+  }
+
+  // 7. Renderizado Principal
   return (
     <>
       <Navbar />
@@ -132,7 +189,6 @@ export default function RegistroResidentes() {
         )}
 
         <div className="row g-4">
-          {/* Formulario de Registro */}
           <div className="col-12 col-lg-5">
             <div className="card shadow-sm border-0">
               <div className="card-header bg-primary text-white py-3">
@@ -179,7 +235,7 @@ export default function RegistroResidentes() {
                     />
                   </div>
 
-                  <h6 className="text-secondary fw-bold mt-4 mb-3 border-bottom pb-1">3. Ficha Médica y Psicopatológica</h6>
+                  <h6 className="text-secondary fw-bold mt-4 mb-3 border-bottom pb-1">3. Ficha Médica y Diagnósticos</h6>
                   <div className="mb-3">
                     <textarea
                       name="fichaPsicopatologica"
@@ -274,7 +330,6 @@ export default function RegistroResidentes() {
             </div>
           </div>
 
-          {/* Tabla de Expedientes */}
           <div className="col-12 col-lg-7">
             <div className="card shadow-sm border-0">
               <div className="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">

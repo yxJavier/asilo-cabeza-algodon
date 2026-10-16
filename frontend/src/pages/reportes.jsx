@@ -1,13 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
-import { API_BASE } from '../config/api';
+import AccesoDenegado from '../components/AccesoDenegado';
+import { apiFetch } from '../services/api';
 
 export default function ModuloReportesEstadisticos() {
+  const [sesion, setSesion] = useState(null);
+  const [autorizado, setAutorizado] = useState(false);
+  const [comprobando, setComprobando] = useState(true);
+
+  const ROLES_PERMITIDOS = ['ADMINISTRADOR', 'COORD_FUNDACION'];
+
   const [tipoReporte, setTipoReporte] = useState('BALANCE_GENERAL');
   const [cargando, setCargando] = useState(true);
   const [errorServidor, setErrorServidor] = useState('');
 
-  // Estados de datos relacionales desde PostgreSQL
   const [resumenFinanciero, setResumenFinanciero] = useState({
     totalDonaciones: 0,
     totalGastos: 0,
@@ -27,6 +33,26 @@ export default function ModuloReportesEstadisticos() {
   const [ordenesLab, setOrdenesLab] = useState([]);
   const [despachosFarmacia, setDespachosFarmacia] = useState([]);
 
+  useEffect(() => {
+    const sesionStr = localStorage.getItem('usuario_sesion');
+    if (!sesionStr) {
+      window.location.href = '/';
+      return;
+    }
+
+    try {
+      const user = JSON.parse(sesionStr);
+      setSesion(user);
+      if (ROLES_PERMITIDOS.includes(user.rol)) {
+        setAutorizado(true);
+      }
+    } catch {
+      window.location.href = '/';
+    } finally {
+      setComprobando(false);
+    }
+  }, []);
+
   const formatMoneda = (val) => {
     const num = Number(val) || 0;
     return num.toLocaleString('en-US', {
@@ -36,6 +62,9 @@ export default function ModuloReportesEstadisticos() {
   };
 
   const cargarDatosReportes = async () => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (!token) return;
+
     try {
       setCargando(true);
       setErrorServidor('');
@@ -50,48 +79,55 @@ export default function ModuloReportesEstadisticos() {
         resLab,
         resFarmacia
       ] = await Promise.all([
-        fetch(`${API_BASE}/api/v1/caja/resumen`),
-        fetch(`${API_BASE}/api/v1/caja/donaciones`),
-        fetch(`${API_BASE}/api/v1/caja/gastos`),
-        fetch(`${API_BASE}/api/v1/caja/cuentas-cobrar`),
-        fetch(`${API_BASE}/api/v1/caja/deuda-fundacion`),
-        fetch(`${API_BASE}/api/v1/internos`),
-        fetch(`${API_BASE}/api/v1/laboratorio`),
-        fetch(`${API_BASE}/api/v1/farmacia`)
+        apiFetch('/api/v1/caja/resumen').catch(() => null),
+        apiFetch('/api/v1/caja/donaciones').catch(() => null),
+        apiFetch('/api/v1/caja/gastos').catch(() => null),
+        apiFetch('/api/v1/caja/cuentas-cobrar').catch(() => null),
+        apiFetch('/api/v1/caja/deuda-fundacion').catch(() => null),
+        apiFetch('/api/v1/internos').catch(() => null),
+        apiFetch('/api/v1/laboratorio').catch(() => null),
+        apiFetch('/api/v1/farmacia').catch(() => null)
       ]);
 
-      if (
-        !resResumen.ok ||
-        !resDonaciones.ok ||
-        !resGastos.ok ||
-        !resCuentas.ok ||
-        !resDeuda.ok ||
-        !resInternos.ok ||
-        !resLab.ok ||
-        !resFarmacia.ok
-      ) {
-        throw new Error('Error al sincronizar datos consolidados para reportes.');
-      }
-
-      setResumenFinanciero(await resResumen.json());
-      setDonaciones(await resDonaciones.json());
-      setGastos(await resGastos.json());
-      setCuentasCobrar(await resCuentas.json());
-      setDeudaFundacion(await resDeuda.json());
-      setInternos(await resInternos.json());
-      setOrdenesLab(await resLab.json());
-      setDespachosFarmacia(await resFarmacia.json());
+      if (resResumen && resResumen.ok) setResumenFinanciero(await resResumen.json());
+      if (resDonaciones && resDonaciones.ok) setDonaciones(await resDonaciones.json());
+      if (resGastos && resGastos.ok) setGastos(await resGastos.json());
+      if (resCuentas && resCuentas.ok) setCuentasCobrar(await resCuentas.json());
+      if (resDeuda && resDeuda.ok) setDeudaFundacion(await resDeuda.json());
+      if (resInternos && resInternos.ok) setInternos(await resInternos.json());
+      if (resLab && resLab.ok) setOrdenesLab(await resLab.json());
+      if (despachosFarmacia && resFarmacia.ok) setDespachosFarmacia(await resFarmacia.json());
     } catch (err) {
       console.error(err);
-      // setErrorServidor('No se pudo establecer comunicacion con los endpoints de reporteria.');
+      setErrorServidor('No se pudo establecer comunicación completa con los servicios de reportería.');
     } finally {
       setCargando(false);
     }
   };
 
   useEffect(() => {
-    cargarDatosReportes();
-  }, []);
+    if (autorizado) {
+      cargarDatosReportes();
+    }
+  }, [autorizado]);
+
+  if (comprobando) {
+    return (
+      <div className="container py-5 text-center">
+        <div className="spinner-border text-primary" role="status"></div>
+        <p className="mt-2 text-muted small">Verificando autorizaciones...</p>
+      </div>
+    );
+  }
+
+  if (!autorizado) {
+    return (
+      <>
+        <Navbar />
+        <AccesoDenegado modulo="Centro de Reportes Estadísticos" rolActual={sesion?.rol} />
+      </>
+    );
+  }
 
   return (
     <>
@@ -100,17 +136,16 @@ export default function ModuloReportesEstadisticos() {
       </div>
 
       <div className="container py-2">
-        {/* Encabezado del Módulo con accion de impresion */}
         <div className="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
           <div>
-            <h3 className="fw-bold text-primary mb-0">Centro de Reportes Estadisticos y Gerenciales</h3>
+            <h3 className="fw-bold text-primary mb-0">Centro de Reportes Estadísticos y Gerenciales</h3>
             <small className="text-muted">
-              Modulo 5: Inteligencia de Negocio, Metricas Clinicas y Financieras (RF-018 a RF-024)
+              Inteligencia Institucional, Métricas Clínicas y Balances Financieros
             </small>
           </div>
           <div className="d-flex gap-2 d-print-none">
             <button className="btn btn-sm btn-outline-secondary" onClick={cargarDatosReportes} disabled={cargando}>
-              Actualizar Metricas
+              Actualizar Métricas
             </button>
             <button className="btn btn-sm btn-primary fw-semibold" onClick={() => window.print()}>
               Imprimir / Exportar PDF
@@ -124,17 +159,16 @@ export default function ModuloReportesEstadisticos() {
           </div>
         )}
 
-        {/* Tarjetas Metricas Superiores */}
         <div className="row g-3 mb-4">
           <div className="col-lg-3 col-6">
             <div className="card shadow-sm border-0 p-3 bg-light">
-              <span className="small text-muted fw-semibold">Poblacion de Residentes</span>
+              <span className="small text-muted fw-semibold">Población de Residentes</span>
               <h4 className="fw-bold mb-0 text-dark">{internos.length} Activos</h4>
             </div>
           </div>
           <div className="col-lg-3 col-6">
             <div className="card shadow-sm border-0 p-3 bg-light">
-              <span className="small text-muted fw-semibold">Superavit / Saldo Caja</span>
+              <span className="small text-muted fw-semibold">Superávit / Saldo Caja</span>
               <h4 className={`fw-bold mb-0 ${resumenFinanciero.saldoNeto >= 0 ? 'text-success' : 'text-danger'}`}>
                 Q {formatMoneda(resumenFinanciero.saldoNeto)}
               </h4>
@@ -150,7 +184,7 @@ export default function ModuloReportesEstadisticos() {
           </div>
           <div className="col-lg-3 col-6">
             <div className="card shadow-sm border-0 p-3 bg-light">
-              <span className="small text-muted fw-semibold">Pasivo con Fundacion</span>
+              <span className="small text-muted fw-semibold">Pasivo con Fundación</span>
               <h4 className="fw-bold mb-0 text-danger">
                 Q {formatMoneda(resumenFinanciero.deudaFundacion)}
               </h4>
@@ -158,7 +192,6 @@ export default function ModuloReportesEstadisticos() {
           </div>
         </div>
 
-        {/* Selector de Informes ERS */}
         <div className="card shadow-sm border-0 mb-4 d-print-none">
           <div className="card-body p-3">
             <label className="form-label small fw-semibold">Seleccione el Informe a Generar</label>
@@ -167,24 +200,23 @@ export default function ModuloReportesEstadisticos() {
               value={tipoReporte}
               onChange={(e) => setTipoReporte(e.target.value)}
             >
-              <option value="BALANCE_GENERAL">RF-022: Balance General de Ingresos y Egresos (Caja)</option>
-              <option value="CUENTAS_COBRAR">RF-020: Cobros y Saldos por Paciente (Familiares)</option>
-              <option value="DEUDA_FUNDACION">RF-021: Liquidacion y Deuda Acumulada con Fundacion</option>
-              <option value="EXAMENES_LAB">RF-023: Historial de Pruebas Clinicas y Laboratorio</option>
-              <option value="FARMACOS">RF-019 / RF-024: Consumo de Medicinas de Cajon y Despachos</option>
+              <option value="BALANCE_GENERAL">Balance General de Ingresos y Egresos (Caja)</option>
+              <option value="CUENTAS_COBRAR">Cuentas por Cobrar y Saldos Pendientes (Familias)</option>
+              <option value="DEUDA_FUNDACION">Liquidación y Deuda Acumulada con Fundación</option>
+              <option value="EXAMENES_LAB">Historial de Pruebas Clínicas y Laboratorio</option>
+              <option value="FARMACOS">Consumo de Medicamentos de Uso Diario y Despachos</option>
             </select>
           </div>
         </div>
 
-        {/* Panel Principal del Reporte Seleccionado */}
         <div className="card shadow-sm border-0">
           <div className="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
             <h5 className="card-title mb-0 fw-bold">
-              {tipoReporte === 'BALANCE_GENERAL' && 'Informe RF-022: Balance Financiero de Entradas y Salidas'}
-              {tipoReporte === 'CUENTAS_COBRAR' && 'Informe RF-020: Estados de Cuenta y Cobros por Residente'}
-              {tipoReporte === 'DEUDA_FUNDACION' && 'Informe RF-021: Liquidacion Institucional con Fundacion Medica'}
-              {tipoReporte === 'EXAMENES_LAB' && 'Informe RF-023: Registro Consolidado de Pruebas de Laboratorio'}
-              {tipoReporte === 'FARMACOS' && 'Informe RF-019/024: Censo de Medicamentos de Cajon y Farmacia'}
+              {tipoReporte === 'BALANCE_GENERAL' && 'Balance Financiero de Entradas y Salidas'}
+              {tipoReporte === 'CUENTAS_COBRAR' && 'Estados de Cuenta Corriente y Cobros por Residente'}
+              {tipoReporte === 'DEUDA_FUNDACION' && 'Liquidación Institucional con Fundación Médica'}
+              {tipoReporte === 'EXAMENES_LAB' && 'Registro Consolidado de Pruebas de Laboratorio'}
+              {tipoReporte === 'FARMACOS' && 'Censo de Medicamentos de Uso Diario y Farmacia'}
             </h5>
             <span className="badge bg-light text-dark border">Consolidado Oficial</span>
           </div>
@@ -193,11 +225,10 @@ export default function ModuloReportesEstadisticos() {
             {cargando ? (
               <div className="text-center py-5 text-muted">
                 <div className="spinner-border text-primary mb-2" role="status"></div>
-                <div>Generando informe analitico desde PostgreSQL...</div>
+                <div>Generando informe analítico consolidado...</div>
               </div>
             ) : (
               <>
-                {/* 1. BALANCE GENERAL (RF-022) */}
                 {tipoReporte === 'BALANCE_GENERAL' && (
                   <div>
                     <h6 className="fw-bold text-success border-bottom pb-2 mb-3">1. Ingresos por Donaciones Multifuente</h6>
@@ -209,7 +240,7 @@ export default function ModuloReportesEstadisticos() {
                           <thead className="table-light">
                             <tr>
                               <th>Donante</th>
-                              <th>Tipo de Entidad (4 Fuentes)</th>
+                              <th>Tipo de Entidad</th>
                               <th>Fecha</th>
                               <th className="text-end">Monto</th>
                             </tr>
@@ -241,7 +272,7 @@ export default function ModuloReportesEstadisticos() {
                           <thead className="table-light">
                             <tr>
                               <th>Concepto del Gasto</th>
-                              <th>Categoria</th>
+                              <th>Categoría</th>
                               <th>Fecha</th>
                               <th className="text-end">Monto</th>
                             </tr>
@@ -266,7 +297,6 @@ export default function ModuloReportesEstadisticos() {
                   </div>
                 )}
 
-                {/* 2. CUENTAS POR COBRAR (RF-020) */}
                 {tipoReporte === 'CUENTAS_COBRAR' && (
                   <div className="table-responsive">
                     <table className="table table-bordered align-middle">
@@ -298,13 +328,12 @@ export default function ModuloReportesEstadisticos() {
                   </div>
                 )}
 
-                {/* 3. CONCILIACION DEUDA FUNDACION (RF-021) */}
                 {tipoReporte === 'DEUDA_FUNDACION' && (
                   <div>
                     <div className="row g-3 mb-4">
                       <div className="col-md-4">
                         <div className="p-3 border rounded bg-light">
-                          <span className="small text-muted">Total Examenes Laboratorio</span>
+                          <span className="small text-muted">Total Exámenes Laboratorio</span>
                           <h4 className="fw-bold mb-0">Q {formatMoneda(deudaFundacion.subtotalLaboratorio)}</h4>
                         </div>
                       </div>
@@ -316,18 +345,17 @@ export default function ModuloReportesEstadisticos() {
                       </div>
                       <div className="col-md-4">
                         <div className="p-3 border rounded bg-danger text-white">
-                          <span className="small text-white-50">Obligacion Total Acumulada</span>
+                          <span className="small text-white-50">Obligación Total Acumulada</span>
                           <h4 className="fw-bold mb-0">Q {formatMoneda(deudaFundacion.totalDeudaFundacion)}</h4>
                         </div>
                       </div>
                     </div>
                     <p className="small text-muted">
-                      El saldo anterior representa la suma consolidada de costos con descuento social pactados con la Fundacion Medica por cada atencion brindada a los residentes.
+                      Suma consolidada de costos con descuento pactados con la Fundación Médica por cada atención brindada a los residentes.
                     </p>
                   </div>
                 )}
 
-                {/* 4. HISTORIAL DE LABORATORIO (RF-023) */}
                 {tipoReporte === 'EXAMENES_LAB' && (
                   <div className="table-responsive">
                     <table className="table table-hover align-middle">
@@ -336,14 +364,14 @@ export default function ModuloReportesEstadisticos() {
                           <th>ID</th>
                           <th>Residente</th>
                           <th>Tipo de Examen</th>
-                          <th>Resultado Clinico</th>
+                          <th>Resultado Clínico</th>
                           <th>Tarifa Social</th>
                           <th>Estado</th>
                         </tr>
                       </thead>
                       <tbody>
                         {ordenesLab.length === 0 ? (
-                          <tr><td colSpan="6" className="text-center text-muted">No existen ordenes de laboratorio.</td></tr>
+                          <tr><td colSpan="6" className="text-center text-muted">No existen órdenes de laboratorio.</td></tr>
                         ) : (
                           ordenesLab.map((o) => (
                             <tr key={o.id}>
@@ -365,16 +393,15 @@ export default function ModuloReportesEstadisticos() {
                   </div>
                 )}
 
-                {/* 5. FARMACOS DE CAJON Y FARMACIA (RF-019 / RF-024) */}
                 {tipoReporte === 'FARMACOS' && (
                   <div>
-                    <h6 className="fw-bold text-primary border-bottom pb-2 mb-3">1. Medicamentos de Uso Diario Continuo ("De Cajon")</h6>
+                    <h6 className="fw-bold text-primary border-bottom pb-2 mb-3">1. Medicamentos de Uso Diario Continuo</h6>
                     <div className="table-responsive mb-4">
                       <table className="table table-sm table-hover align-middle">
                         <thead className="table-light">
                           <tr>
                             <th>Residente</th>
-                            <th>Ficha Psicopatologica</th>
+                            <th>Ficha Diagnóstica</th>
                             <th>Medicamentos Prescritos</th>
                           </tr>
                         </thead>

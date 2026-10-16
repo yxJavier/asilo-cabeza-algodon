@@ -22,11 +22,13 @@ public class CajaController {
         this.cajaService = cajaService;
     }
 
+    // RF-015: Balance general y totalizadores de caja
     @GetMapping("/resumen")
     public ResponseEntity<Map<String, Double>> obtenerResumen() {
         return ResponseEntity.ok(cajaService.obtenerResumenFinanciero());
     }
 
+    // RF-013: Donaciones multifuente (4 categorías auditables)
     @GetMapping("/donaciones")
     public ResponseEntity<List<Donacion>> listarDonaciones() {
         return ResponseEntity.ok(cajaService.listarDonaciones());
@@ -38,6 +40,7 @@ public class CajaController {
         return new ResponseEntity<>(nueva, HttpStatus.CREATED);
     }
 
+    // RF-014: Egresos operativos (luz, agua, mantenimiento)
     @GetMapping("/gastos")
     public ResponseEntity<List<GastoOperativo>> listarGastos() {
         return ResponseEntity.ok(cajaService.listarGastos());
@@ -49,13 +52,13 @@ public class CajaController {
         return new ResponseEntity<>(nuevo, HttpStatus.CREATED);
     }
 
-    // RF-017: Detalle de conciliacion por pagar a la Fundacion
+    // RF-016: Conciliación de deudas por servicios prestados por la Fundación
     @GetMapping("/deuda-fundacion")
     public ResponseEntity<Map<String, Double>> obtenerDeudaFundacion() {
         return ResponseEntity.ok(cajaService.obtenerDeudaFundacion());
     }
 
-    // RF-016: Listado detallado de cuentas corrientes por familiar
+    // RF-015: Cuentas corrientes y cuotas pendientes por familiar responsable
     @GetMapping("/cuentas-cobrar")
     public ResponseEntity<List<EstadoCuentaFamiliarDTO>> obtenerCuentasPorCobrar() {
         return ResponseEntity.ok(cajaService.obtenerEstadosCuentaFamiliares());

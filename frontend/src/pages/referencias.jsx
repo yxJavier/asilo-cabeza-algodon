@@ -1,8 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
-import { API_BASE } from '../config/api';
+import AccesoDenegado from '../components/AccesoDenegado';
+import { apiFetch } from '../services/api';
 
 export default function ReferenciasMedicas() {
+  // 1. Estados de Seguridad RBAC
+  const [sesion, setSesion] = useState(null);
+  const [autorizado, setAutorizado] = useState(false);
+  const [comprobando, setComprobando] = useState(true);
+
+  // Módulo 2: Permitido para Administradores, Médicos y Coordinación de Fundación
+  const ROLES_PERMITIDOS = ['ADMINISTRADOR', 'MEDICO_GENERAL', 'ENFERMERO', 'COORD_FUNDACION'];
+
+  // 2. Estados de datos del Módulo 2
   const [referencias, setReferencias] = useState([]);
   const [internosDisponibles, setInternosDisponibles] = useState([]);
   const [formData, setFormData] = useState({
@@ -17,17 +27,39 @@ export default function ReferenciasMedicas() {
   const [mensajeExito, setMensajeExito] = useState(false);
   const [errorServidor, setErrorServidor] = useState('');
 
-  const API_REFERENCIAS = `${API_BASE}/api/v1/referencias`;
-  const API_INTERNOS = `${API_BASE}/api/v1/internos`;
+  // 3. Validación de sesión en el navegador
+  useEffect(() => {
+    const sesionStr = localStorage.getItem('usuario_sesion');
+    if (!sesionStr) {
+      window.location.href = '/';
+      return;
+    }
 
+    try {
+      const user = JSON.parse(sesionStr);
+      setSesion(user);
+      if (ROLES_PERMITIDOS.includes(user.rol)) {
+        setAutorizado(true);
+      }
+    } catch {
+      window.location.href = '/';
+    } finally {
+      setComprobando(false);
+    }
+  }, []);
+
+  // 4. Carga de datos desde Spring Boot (solo si está autorizado)
   const cargarDatosIniciales = async () => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (!token) return;
+
     try {
       setCargandoLista(true);
       setErrorServidor('');
 
       const [resReferencias, resInternos] = await Promise.all([
-        fetch(API_REFERENCIAS),
-        fetch(API_INTERNOS)
+        apiFetch('/api/v1/referencias'),
+        apiFetch('/api/v1/internos')
       ]);
 
       if (!resReferencias.ok || !resInternos.ok) {
@@ -56,9 +88,12 @@ export default function ReferenciasMedicas() {
   };
 
   useEffect(() => {
-    cargarDatosIniciales();
-  }, []);
+    if (autorizado) {
+      cargarDatosIniciales();
+    }
+  }, [autorizado]);
 
+  // 5. Manejadores de eventos
   const handleSelectInterno = (e) => {
     const seleccionado = internosDisponibles.find((i) => i.nombreCompleto === e.target.value);
     if (seleccionado) {
@@ -80,9 +115,8 @@ export default function ReferenciasMedicas() {
     setErrorServidor('');
 
     try {
-      const response = await fetch(API_REFERENCIAS, {
+      const response = await apiFetch('/api/v1/referencias', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
 
@@ -100,7 +134,7 @@ export default function ReferenciasMedicas() {
       setTimeout(() => setMensajeExito(false), 4500);
     } catch (err) {
       console.error(err);
-      setErrorServidor('Error al registrar la derivacion medica.');
+      setErrorServidor('Error al registrar la derivación médica.');
     } finally {
       setLoading(false);
     }
@@ -108,7 +142,7 @@ export default function ReferenciasMedicas() {
 
   const handleCambiarEstado = async (id, nuevoEstado) => {
     try {
-      const res = await fetch(`${API_REFERENCIAS}/${id}/estado?estado=${nuevoEstado}`, {
+      const res = await apiFetch(`/api/v1/referencias/${id}/estado?estado=${nuevoEstado}`, {
         method: 'PATCH'
       });
       if (res.ok) {
@@ -120,23 +154,43 @@ export default function ReferenciasMedicas() {
     }
   };
 
+  // 6. Intercepciones de renderizado
+  if (comprobando) {
+    return (
+      <div className="container py-5 text-center">
+        <div className="spinner-border text-primary" role="status"></div>
+        <p className="mt-2 text-muted small">Verificando autorizaciones...</p>
+      </div>
+    );
+  }
+
+  if (!autorizado) {
+    return (
+      <>
+        <Navbar />
+        <AccesoDenegado modulo="Módulo de Referencias Médicas" rolActual={sesion?.rol} />
+      </>
+    );
+  }
+
+  // 7. Renderizado principal único
   return (
     <>
       <Navbar />
       <div className="container py-2">
         <div className="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
           <div>
-            <h3 className="fw-bold text-primary mb-0">Referencias y Derivaciones Medicas</h3>
+            <h3 className="fw-bold text-primary mb-0">Referencias y Derivaciones Médicas</h3>
             <small className="text-muted">
-              Modulo 2: Emision Clinica y Notificaciones Automaticas (RF-003 / RNF-005)
+              Módulo 2: Emisión Clínica y Notificaciones Automáticas (RF-003 / RNF-005)
             </small>
           </div>
-          <span className="badge bg-warning text-dark fs-6 px-3 py-2 border">Modulo 2</span>
+          <span className="badge bg-warning text-dark fs-6 px-3 py-2 border">Módulo 2</span>
         </div>
 
         {mensajeExito && (
           <div className="alert alert-success alert-dismissible fade show" role="alert">
-            Solicitud emitida exitosamente. El correo de notificacion fue despachado al familiar responsable.
+            Solicitud emitida exitosamente. El correo de notificación fue despachado al familiar responsable.
           </div>
         )}
 
@@ -150,7 +204,7 @@ export default function ReferenciasMedicas() {
           <div className="col-lg-5">
             <div className="card shadow-sm border-0">
               <div className="card-header bg-primary text-white py-3">
-                <h5 className="card-title mb-0 fw-semibold">Nueva Derivacion Medica</h5>
+                <h5 className="card-title mb-0 fw-semibold">Nueva Derivación Médica</h5>
               </div>
               <div className="card-body p-4">
                 <form onSubmit={handleSubmit}>
@@ -188,12 +242,12 @@ export default function ReferenciasMedicas() {
                       onChange={handleChange}
                       required
                     >
-                      <option value="Geriatria">Geriatria</option>
-                      <option value="Cardiologia">Cardiologia</option>
-                      <option value="Neurologia">Neurologia</option>
-                      <option value="Oftalmologia">Oftalmologia</option>
+                      <option value="Geriatria">Geriatría</option>
+                      <option value="Cardiologia">Cardiología</option>
+                      <option value="Neurologia">Neurología</option>
+                      <option value="Oftalmologia">Oftalmología</option>
                       <option value="Medicina Interna">Medicina Interna</option>
-                      <option value="Psiquiatria">Psiquiatria</option>
+                      <option value="Psiquiatria">Psiquiatría</option>
                     </select>
                   </div>
 
@@ -210,14 +264,14 @@ export default function ReferenciasMedicas() {
                   </div>
 
                   <div className="mb-4">
-                    <label className="form-label small fw-semibold">Motivo Clinico de Derivacion</label>
+                    <label className="form-label small fw-semibold">Motivo Clínico de Derivación</label>
                     <textarea
                       name="motivo"
                       className="form-control"
                       rows="3"
                       value={formData.motivo}
                       onChange={handleChange}
-                      placeholder="Justificacion medica de la interconsulta..."
+                      placeholder="Justificación médica de la interconsulta..."
                       required
                     ></textarea>
                   </div>
@@ -227,7 +281,7 @@ export default function ReferenciasMedicas() {
                     className="btn btn-primary w-100 py-2 fw-semibold" 
                     disabled={loading || internosDisponibles.length === 0}
                   >
-                    {loading ? 'Procesando y notificando...' : 'Emitir Referencia a Fundacion'}
+                    {loading ? 'Procesando y notificando...' : 'Emitir Referencia a Fundación'}
                   </button>
                 </form>
               </div>
