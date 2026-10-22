@@ -14,6 +14,11 @@ public class CorsConfig implements WebMvcConfigurer {
                 .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true)
-                .allowedOriginPatterns("http://localhost:3000", "https://*.vercel.app");
+                .allowedOriginPatterns(
+                    "http://localhost:3000",
+                    "https://*.vercel.app",
+                    "https://cabezaalgodon.com.gt",
+                    "https://www.cabezaalgodon.com.gt"
+                );
     }
 }
