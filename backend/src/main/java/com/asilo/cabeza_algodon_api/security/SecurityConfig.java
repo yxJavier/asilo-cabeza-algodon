@@ -78,12 +78,16 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
+        // Orígenes autorizados (incluyendo tu nuevo dominio con y sin www)
         configuration.setAllowedOriginPatterns(List.of(
             "http://localhost:3000",
-            "https://asilo-cabeza-algodon.vercel.app"
+            "https://*.vercel.app",
+            "https://cabezaalgodon.com.gt",
+            "https://www.cabezaalgodon.com.gt"
         ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setExposedHeaders(List.of("Authorization"));
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

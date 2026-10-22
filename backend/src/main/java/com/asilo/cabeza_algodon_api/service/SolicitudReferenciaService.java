@@ -30,7 +30,8 @@ public class SolicitudReferenciaService {
             emailService.enviarNotificacion(
                 guardada.getCorreoFamiliar(),
                 guardada.getNombreInterno(),
-                guardada.getEspecialidad()
+                guardada.getEspecialidad(),
+                guardada.getMotivo()
             );
         } catch (Exception ex) {
             System.err.println("No se pudo iniciar el envio de correo: " + ex.getMessage());

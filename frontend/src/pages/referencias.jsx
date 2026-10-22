@@ -182,7 +182,7 @@ export default function ReferenciasMedicas() {
           <div>
             <h3 className="fw-bold text-primary mb-0">Referencias y Derivaciones Médicas</h3>
             <small className="text-muted">
-              Módulo 2: Emisión Clínica y Notificaciones Automáticas (RF-003 / RNF-005)
+              Módulo 2: Emisión Clínica y Notificaciones Automáticas 
             </small>
           </div>
           <span className="badge bg-warning text-dark fs-6 px-3 py-2 border">Módulo 2</span>
