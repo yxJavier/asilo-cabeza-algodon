@@ -127,7 +127,7 @@ public class EmailService {
                     </div>
                     <div class="footer">
                       <strong>Direccion Medica y Trabajo Social</strong><br>
-                      Asilo de Ancianos Cabeza de Algodon | PBX: +502 2368-8302<br>
+                      Asilo de Ancianos Cabeza de Algodon | PBX: +502 8877-ASILO<br>
                       Este es un correo automatico generado por el sistema institucional.
                     </div>
                   </div>

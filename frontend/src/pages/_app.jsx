@@ -7,18 +7,6 @@ export default function MyApp({ Component, pageProps }) {
     import('bootstrap/dist/js/bootstrap.bundle.min.js');
   }, []);
 
-
-
-  return <Component {...pageProps} />;
-}import 'bootstrap/dist/css/bootstrap.min.css';
-import { useEffect } from 'react';
-import Head from 'next/head';
-
-export default function MyApp({ Component, pageProps }) {
-  useEffect(() => {
-    import('bootstrap/dist/js/bootstrap.bundle.min.js');
-  }, []);
-
   return (
     <>
       <Head>
